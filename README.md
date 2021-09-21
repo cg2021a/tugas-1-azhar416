@@ -1,7 +1,8 @@
 # Tugas 1 Grafika Komputer
 
-Daffa Muhamad Azhar
-05111940000037
+Nama : Daffa Muhamad Azhar
+
+NRP : 05111940000037
 
 ## Koin
 
