@@ -7,7 +7,7 @@ Daffa Muhamad Azhar
 
 ![depan](./foto/depan.jpg)
 
-![samping](./foto/samping/jpg)
+![samping](./foto/samping.jpg)
 
 ![belakang-kanan](./foto/belakang-kanan.jpg)
 
