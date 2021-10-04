@@ -44,7 +44,8 @@ function main(){
     precision mediump float;
     varying vec3 v_Color;
     void main(){
-        gl_FragColor = vec4(0.5255, 0.5255, 0.5255, 1.0);
+        // gl_FragColor = vec4(0.5255, 0.5255, 0.5255, 1.0);
+        gl_FragColor = vec4(v_Color, 0.6);
     }`;
 
     var vertexShader = gl.createShader(gl.VERTEX_SHADER);
@@ -81,7 +82,7 @@ function main(){
         return;
     }
 
-    var vertices = [], vertices2 = [],
+    var vertices = [],
         vertCount = 2;
 
     // benda 1
@@ -89,7 +90,7 @@ function main(){
       // degrees to radians
       var j = i * Math.PI / 180;
       // X Y Z
-        if (i<=360)
+        if (i <= 360)
         {
             var vert1 = [
               Math.sin(j)*0.5,
@@ -123,15 +124,14 @@ function main(){
 
     let color = []
 
-    for (let i = 0; i < n/2; i++) {
-        let r = 1;
-        let g = 1;
-        let b = 1;
+    for (let i = 0; i < n; i++) {
+        let r = 0.01;
+        let g = 0.01;
+        let b = 0.01;
         for (let j = 0; j < 3; j++) {
             color.push(r);
             color.push(g);
             color.push(b);
-            // color.push(0.124);
         }
     }
 
