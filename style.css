@@ -1,0 +1,18 @@
+body {
+    background-color: #7cd8e9;
+}
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 0rem;
+}
+
+#myCanvas {
+    border: 1px solid #212121;
+    border-radius: 3rem;
+    box-shadow: 13px 12px 15px 0px rgba(0,0,0,0.48);
+    -webkit-box-shadow: 13px 12px 15px 0px rgba(0,0,0,0.48);
+    -moz-box-shadow: 13px 12px 15px 0px rgba(0,0,0,0.48);
+}
