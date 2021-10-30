@@ -1,11 +1,5 @@
-import './style.css'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import * as dat from 'dat.gui'
-import { Texture } from 'three'
-
-// Debug
-const gui = new dat.GUI()
+import * as THREE from '../../JS/three.module.js';
+import {OrbitControls} from '../../JS/OrbitControls.js';
 
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
