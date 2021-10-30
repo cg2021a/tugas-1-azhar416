@@ -1,19 +1,48 @@
 import * as THREE from '../../JS/three.module.js';
-import {OrbitControls} from '../../JS/OrbitControls.js';
-import {GLTFLoader} from '../JS/GLTFLoader.js';
+import { OrbitControls } from '../../JS/OrbitControls.js';
+import { GLTFLoader } from '../JS/GLTFLoader.js';
+import { DragControls} from '../JS/DragControls.js';
+import { CubeCamera, Light } from '../JS/three.module.js';
+import { FlakesTexture } from '../JS/FlakesTexture.js';
+import { RGBELoader } from '../JS/RGBELoader.js';
+import { RoughnessMipmapper } from '../JS/RoughnessMipmapper.js';
 
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
 
 // Scene
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
+
+const loaderBG = new THREE.CubeTextureLoader();
+const bgTexture = loaderBG.load([
+    './texture/px.png',
+    './texture/nx.png',
+    './texture/py.png',
+    './texture/ny.png',
+    './texture/pz.png',
+    './texture/nz.png',
+]);
+
+const loaderTexture = new THREE.TextureLoader();
+const texture = loaderTexture.load(
+    'texture/2k.jpg',
+    () => {
+        const rt = new THREE.WebGLCubeRenderTarget(texture.image.height);
+        rt.fromEquirectangularTexture(renderer, texture);
+        scene.background = rt.texture;
+    });
+
+scene.fog = new THREE.FogExp2('0xffffff', 0.1);
 
 /** 
  * lights 
  */ 
 const direcLight = new THREE.DirectionalLight(0xffffff, 1);
-direcLight.position.set(1, 6, 5);
+direcLight.position.set(0, 10, 0);
+direcLight.target.position.set(0, 0, 0);
+direcLight.castShadow = true;
+direcLight.shadow.mapSize.width = 2048;
+direcLight.shadow.mapSize.height = 2048;
 scene.add(direcLight);
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(ambientLight);
@@ -51,22 +80,26 @@ camera.position.y = 6;
 camera.position.z = 10;
 scene.add(camera);
 
-// Controls
-const controls = new OrbitControls(camera, canvas);
-// controls.enableDamping = true
-// controls.autoRotate = true;
-controls.autoRotateSpeed = 4;
+const cubeRenderTarget = new THREE.WebGLCubeRenderTarget( 128, { format: THREE.RGBFormat, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter } );
+let sphereCamera = new THREE.CubeCamera(1,500,cubeRenderTarget);
+sphereCamera.position.set(0, 3, 0);
+scene.add(sphereCamera);
 
 /**
  * Renderer
  */
 const renderer = new THREE.WebGLRenderer({
-    canvas: canvas
+    canvas: canvas,
+    alpha: true,
+    antialias: true,
 })
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
-renderer.gammaOutput = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1;
+renderer.outputEncoding = THREE.sRGBEncoding;
 
 /**
  * SceneGraph
@@ -77,31 +110,89 @@ function dumpObject(obj, lines = [], isLast = true, prefix = '') {
     const newPrefix = prefix + (isLast ? '  ' : '│ ');
     const lastNdx = obj.children.length - 1;
     obj.children.forEach((child, ndx) => {
-      const isLast = ndx === lastNdx;
-      dumpObject(child, lines, isLast, newPrefix);
+        const isLast = ndx === lastNdx;
+        dumpObject(child, lines, isLast, newPrefix);
     });
     return lines;
-  }
+}
+
+/*
+ * Roughness Mipmapper
+ */
+const roughnessMipmapper = new RoughnessMipmapper( renderer );
+
 
 /**
  * Object
  */
-let kotak1;
-const loader = new GLTFLoader();
-loader.load('./model/reevastory.gltf', function(gltf){
+const materials = [];
+const loaderGLTF = new GLTFLoader();
+loaderGLTF.load('./model/room1.gltf', function(gltf){
     console.log(gltf);
-        const root = gltf.scene;
-        scene.add(root);
-        console.log(dumpObject(root).join('\n'));
-        kotak1 = root.getObjectByName('Cube001');
+    const root = gltf.scene;
+    scene.add(root);
+    console.log(dumpObject(root).join('\n'));
+    root.traverse(function(object){
+        if ( object.isMesh ) 
+        {
+            object.castShadow = true;
+            object.receiveShadow = true;
+            roughnessMipmapper.generateMipmaps( object.material );
 
+        }
+    });
 },  
-    function(xhr){
-        console.log((xhr.loaded/xhr.total * 100) + "% Loaded");
+function(xhr){
+    console.log((xhr.loaded/xhr.total * 100) + "% Loaded");
 },
-    function(error){
-        console.log('An Error Occurred');
+function(error){
+    console.log('An Error Occurred');
 })
+
+
+const geometrySphere = new THREE.SphereGeometry(.3, 32 , 16);
+const materialDisco = new THREE.MeshPhysicalMaterial( {wireframe: false, map: loaderTexture.load('./texture/disco-ball.jpg')} );
+materialDisco.color = new THREE.Color(0xffffff);
+const disco = new THREE.Mesh(geometrySphere, materialDisco);
+disco.position.y = 5;
+scene.add(disco);
+
+const refMat = new THREE.MeshBasicMaterial({
+    envMap: sphereCamera.renderTarget.texture,
+});
+const refGeo = new THREE.SphereGeometry(.3, 32 , 16);
+const refBall = new THREE.Mesh(refGeo, refMat);
+refBall.position.y = 3;
+refBall.position.x = 0;
+
+scene.add(refBall);
+
+const geometryBox = new THREE.BoxGeometry(3, 0.2, 3);
+const materialBox = new THREE.MeshPhysicalMaterial( {wireframe: false} );
+materialBox.color = new THREE.Color(0xffffff);
+const cube = new THREE.Mesh(geometryBox, materialBox);
+cube.position.y = 4;
+scene.add(cube);
+
+disco.castShadow = true;
+cube.receiveShadow = true;
+cube.castShadow = true;
+
+/*
+ * Controls
+ */ 
+const controls = new OrbitControls(camera, canvas);
+// controls.enableDamping = true
+// controls.autoRotate = true;
+controls.autoRotateSpeed = 4;
+
+// const dragControl = new DragControls(objek, camera, canvas);
+// dragControl.addEventListener( 'dragstart', function ( event ) {
+//     event.object.material.opacity = 0.33;
+// } );
+// dragControl.addEventListener( 'dragend', function ( event ) {
+//     event.object.material.opacity = 1;
+// } );
 
 /**
  * Animate
@@ -112,17 +203,11 @@ const tick = () =>
 {
     const elapsedTime = clock.getElapsedTime();
 
-    // Update objects
-    if (kotak1) {
-        for (const kotak of kotak1.children) {
-          kotak.rotation.y += speed;
-        }
-    }
-
     // Update Orbital Controls
     controls.update();
 
     // Render
+    sphereCamera.update(renderer, scene);
     renderer.render(scene, camera);
 
     // Call tick again on the next frame
